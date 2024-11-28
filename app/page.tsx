@@ -16,6 +16,19 @@ interface DataItem {
 // Constants
 const TABLE_COLUMNS = ["fullName", "specialties", "dayRate", "availability"] as const;
 
+// GraphQL query
+const USERS_QUERY = `
+  query {
+    users {
+      fullName
+      specialties
+      dayRate
+      availability
+      color
+    }
+  }
+`;
+
 // Custom Hooks
 function useDataFetching() {
   const [data, setData] = useState<DataItem[]>([]);
@@ -23,11 +36,21 @@ function useDataFetching() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:4000/users");
+      const response = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: USERS_QUERY
+        }),
+      });
+
       if (!response.ok) {
         throw new Error("Failed to fetch data");
       }
-      const users = await response.json();
+
+      const { data: { users } } = await response.json();
       setData(users);
       setOriginalData(users);
     } catch (error) {
