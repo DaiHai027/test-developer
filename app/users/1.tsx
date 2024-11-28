@@ -3,7 +3,7 @@ import Image from "next/image";
 import BaseText from "@/components/Custom/BaseText";
 import { FONT_SIZE, COLORS } from "@/components/Custom/enum";
 import Table from "@/components/Table/table";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Types
 interface DataItem {
@@ -16,50 +16,54 @@ interface DataItem {
 // Constants
 const TABLE_COLUMNS = ["fullName", "specialties", "dayRate", "availability"] as const;
 
-const TableData = [
-  {
-    fullName: "Sarah Johnson", 
-    specialties: ["Pediatrics", "Family Medicine"],
-    dayRate: 4500,
-    availability: true,
-    color: "#4287f5",
-  },
-  {
-    fullName: "Michael Chen",
-    specialties: ["Orthopedics", "Sports Medicine"], 
-    dayRate: 6000,
-    availability: true,
-    color: "#42f548",
-  },
-  {
-    fullName: "Emily Williams",
-    specialties: ["Dermatology", "Cosmetic Surgery"],
-    dayRate: 8000,
-    availability: false,
-    color: "#f542f2",
-  },
-  {
-    fullName: "James Wilson",
-    specialties: ["Psychiatry", "Neurology"],
-    dayRate: 5500,
-    availability: true,
-    color: "#f54242",
-  },
-  {
-    fullName: "Maria Garcia",
-    specialties: ["Internal Medicine", "Endocrinology", "Pediatrics"],
-    dayRate: 7000,
-    availability: false,
-    color: "#42f5f5",
-  },
-  {
-    fullName: "David Kim",
-    specialties: ["Cardiology", "Critical Care", "Pediatrics", "Neurology"],
-    dayRate: 9000,
-    availability: true,
-    color: "#f5a442",
-  },
-];
+// GraphQL query
+const USERS_QUERY = `
+  query {
+    users {
+      fullName
+      specialties
+      dayRate
+      availability
+      color
+    }
+  }
+`;
+
+// Custom Hooks
+function useDataFetching() {
+  const [data, setData] = useState<DataItem[]>([]);
+  const [originalData, setOriginalData] = useState<DataItem[]>([]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/graphql', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: USERS_QUERY
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch data");
+      }
+
+      const { data: { users } } = await response.json();
+      setData(users);
+      setOriginalData(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  return { data, setData, originalData };
+}
 
 // Data Handler Hook
 function useDataHandlers(data: DataItem[], setData: React.Dispatch<React.SetStateAction<DataItem[]>>, originalData: DataItem[]) {
@@ -124,8 +128,7 @@ function BackgroundLayers() {
 
 // Main Component
 export default function Home() {
-  const [data, setData] = useState<DataItem[]>(TableData);
-  const [originalData] = useState<DataItem[]>(TableData);
+  const { data, setData, originalData } = useDataFetching();
   const { handleSearch, handleSort } = useDataHandlers(data, setData, originalData);
 
   return (
